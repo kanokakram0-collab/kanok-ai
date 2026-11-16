@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>J.A.R.V.I.S — Personal AI Assistant</title>
+  <style>
+    :root {
+      --bg-dark: #040812;
+      --panel-bg: rgba(10, 20, 40, 0.78);
+      --cyan: #00f3ff;
+      --cyan-dim: rgba(0, 243, 255, 0.25);
+      --blue-core: #0066ff;
+      --text-main: #e6f7ff;
+      --text-muted: #7a9bb8;
+      --danger: #ff3b5c;
+      --success: #00e676;
+      --gold: #ffca28;
+      --purple: #b388ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0a1730 0%, var(--bg-dark) 75%);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      font-size: 1.05rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hud-btn {
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 5px 11px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    .hud-btn:hover {
+      background: var(--cyan);
+      color: var(--bg-dark);
+    }
+
+    .hud-btn.memory-btn {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(255, 202, 40, 0.1);
+    }
+
+    .hud-btn.memory-btn:hover {
+      background: var(--gold);
+      color: var(--bg-dark);
+    }
+
+    .hud-btn.danger {
+      border-color: rgba(255, 59, 92, 0.7);
+      color: #ff7a90;
+      background: rgba(255, 59, 92, 0.1);
+    }
+
+    .hud-btn.danger:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .orb-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 6px 0;
+    }
+
+    .orb-wrapper {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .ring-1 {
+      width: 130px;
+      height: 130px;
+      border-top: 2px solid var(--cyan);
+      border-bottom: 2px solid var(--cyan);
+      animation: spin 8s linear infinite;
+    }
+
+    .ring-2 {
+      width: 106px;
+      height: 106px;
+      border-left: 2px dashed var(--cyan);
+      border-right: 2px dashed var(--blue-core);
+      animation: spinReverse 5s linear infinite;
+    }
+
+    .ring-3 {
+      width: 82px;
+      height: 82px;
+      border: 1px solid var(--cyan-dim);
+    }
+
+    .core {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffffff 0%, var(--cyan) 45%, var(--blue-core) 100%);
+      box-shadow: 0 0 28px var(--cyan), 0 0 60px rgba(0, 102, 255, 0.6);
+      animation: breathe 3s ease-in-out infinite;
+    }
+
+    .orb-wrapper.listening .core {
+      background: radial-gradient(circle, #fff 0%, var(--danger) 55%, #800020 100%);
+      box-shadow: 0 0 35px var(--danger), 0 0 75px rgba(255, 59, 92, 0.7);
+      animation: pulseFast 0.8s ease-in-out infinite;
+    }
+
+    .orb-wrapper.listening .ring-1 {
+      border-top-color: var(--danger);
+      border-bottom-color: var(--danger);
+      animation-duration: 2s;
+    }
+
+    .orb-wrapper.thinking .core {
+      background: radial-gradient(circle, #fff 0%, #ffaa00 55%, #ff5500 100%);
+      box-shadow: 0 0 35px #ffaa00;
+      animation: pulseFast 0.6s ease-in-out infinite;
+    }
+
+    .orb-wrapper.speaking .core {
+      animation: pulseFast 0.45s ease-in-out infinite;
+    }
+
+    .status-text {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes spinReverse { 100% { transform: rotate(-360deg); } }
+    @keyframes breathe {
+      0%, 100% { transform: scale(0.95); opacity: 0.88; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+    @keyframes pulseFast {
+      0%, 100% { transform: scale(0.92); }
+      50% { transform: scale(1.14); }
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 860px;
+      flex: 1;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 16px;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 10px;
+      backdrop-filter: blur(12px);
+    }
+
+    .chat-container::-webkit-scrollbar { width: 6px; }
+    .chat-container::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 4px; }
+
+    .msg {
+      max-width: 82%;
+      padding: 11px 15px;
+      border-radius: 14px;
+      font-size: 0.94rem;
+      line-height: 1.55;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .msg.ai {
+      align-self: flex-start;
+      background: rgba(0, 243, 255, 0.08);
+      border: 1px solid rgba(0, 243, 255, 0.25);
+      border-bottom-left-radius: 4px;
+      color: var(--text-main);
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #0055cc, #0088ff);
+      border-bottom-right-radius: 4px;
+      color: #ffffff;
+    }
+
+    .action-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(0, 230, 118, 0.15);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .action-badge.memory {
+      background: rgba(255, 202, 40, 0.15);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .action-badge.reminder {
+      background: rgba(179, 136, 255, 0.15);
+      border-color: var(--purple);
+      color: var(--purple);
+    }
+
+    .action-badge.error {
+      background: rgba(255, 59, 92, 0.15);
+      border-color: var(--danger);
+      color: #ff8095;
+    }
+
+    .input-bar {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      gap: 10px;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      padding: 10px;
+      border-radius: 14px;
+    }
+
+    .input-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 0.96rem;
+      padding: 6px 10px;
+    }
+
+    .input-bar input::placeholder { color: var(--text-muted); }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .btn-mic {
+      background: rgba(0, 243, 255, 0.14);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+    }
+
+    .btn-mic.active {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    .btn-send {
+      background: var(--cyan);
+      color: var(--bg-dark);
+    }
+
+    .btn-send:hover { box-shadow: 0 0 14px var(--cyan); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 15, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal-box {
+      background: #0a1529;
+      border: 1px solid var(--cyan);
+      border-radius: 16px;
+      padding: 22px;
+      width: 100%;
+      max-width: 490px;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .modal-box h3 {
+      color: var(--cyan);
+      margin-bottom: 12px;
+    }
+
+    .modal-box label {
+      display: block;
+      font-size: 0.83rem;
+      color: var(--text-main);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .modal-box p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .modal-box input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--cyan-dim);
+      background: #040812;
+      color: #fff;
+      margin-bottom: 14px;
+      outline: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .memory-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .memory-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #040812;
+      border: 1px solid rgba(255, 202, 40, 0.3);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      gap: 10px;
+    }
+
+    .memory-del {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="status-dot"></span>
+      <span>J.A.R.V.I.S</span>
+    </div>
+    <div class="header-actions">
+      <button class="hud-btn memory-btn" id="memoryBtn">🧠 Memory (<span id="memCount">0</span>)</button>
+      <button class="hud-btn" id="settingsBtn">⚙️ Settings</button>
+      <button class="hud-btn" id="langBtn">Voice: বাংলা (BD)</button>
+      <button class="hud-btn danger" id="clearChatBtn" title="শুধু চ্যাট স্ক্রিন মুছুন (স্থায়ী মেমোরি থাকবে)">🗑️ Clear</button>
+    </div>
+  </header>
+
+  <section class="orb-section">
+    <div class="orb-wrapper" id="orb" title="কথা বলতে ক্লিক করুন">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="core"></div>
+    </div>
+    <div class="status-text" id="statusText">System Online • Ready</div>
+  </section>
+
+  <main class="chat-container" id="chatBox"></main>
+
+  <form class="input-bar" id="chatForm">
+    <input type="text" id="userInput" placeholder="বস, কমান্ড দিন (যেমন: টেলিগ্রামে মেসেজ পাঠাও...)" autocomplete="off" />
+    <button type="button" class="btn btn-mic" id="micBtn" title="ভয়েস কমান্ড">🎤</button>
+    <button type="submit" class="btn btn-send">Send</button>
+  </form>
+
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-box">
+      <h3>J.A.R.V.I.S সিস্টেম সেটিংস</h3>
+
+      <label for="apiKeyInput">১. Gemini API Key (আবশ্যক)</label>
+      <input type="password" id="apiKeyInput" placeholder="AIzaSy... বা AQ..." />
+
+      <label for="webhookInput">২. Google Apps Script Web App URL</label>
+      <input type="text" id="webhookInput" placeholder="https://script.google.com/macros/s/.../exec" />
+      <p>Google Sheets নোট, Telegram মেসেজ/রিমাইন্ডার ও Gmail অটোমেশনের জন্য Apps Script URL দিন।</p>
+
+      <div class="modal-actions">
+        <button type="button" class="hud-btn" id="closeModalBtn">বাতিল</button>
+        <button type="button" class="btn btn-send" id="saveSettingsBtn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="memoryModal">
+    <div class="modal-box">
+      <h3 style="color: var(--gold);">🧠 স্থায়ী মেমোরি ভল্ট (Permanent Memory)</h3>
+      <p>এখানে সেভ থাকা তথ্যগুলো জার্ভিস সারাজীবন মনে রাখবে (চ্যাট ক্লিয়ার করলেও মুছবে না)।</p>
+
+      <div class="memory-list" id="memoryList"></div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+        <input type="text" id="newFactInput" placeholder="নতুন স্থায়ী তথ্য লিখুন (যেমন: আমার ইমেইল...)" style="margin-bottom: 0;" />
+        <button type="button" class="btn btn-send" id="addFactBtn" style="background: var(--gold);">Add</button>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="hud-btn" id="closeMemModalBtn">বন্ধ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const orb = document.getElementById('orb');
+    const statusText = document.getElementById('statusText');
+    const chatBox = document.getElementById('chatBox');
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+    const micBtn = document.getElementById('micBtn');
+    const langBtn = document.getElementById('langBtn');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const webhookInput = document.getElementById('webhookInput');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+
+    const memoryBtn = document.getElementById('memoryBtn');
+    const memCount = document.getElementById('memCount');
+    const memoryModal = document.getElementById('memoryModal');
+    const memoryList = document.getElementById('memoryList');
+    const newFactInput = document.getElementById('newFactInput');
+    const addFactBtn = document.getElementById('addFactBtn');
+    const closeMemModalBtn = document.getElementById('closeMemModalBtn');
+
+    let currentLang = 'bn-BD';
+    let GEMINI_API_KEY = localStorage.getItem('jarvis_gemini_key') || '';
+    let APPS_SCRIPT_URL = localStorage.getItem('jarvis_webhook_url') || '';
+    let isProcessing = false;
+
+    let chatHistory = JSON.parse(localStorage.getItem('jarvis_chat_history') || '[]');
+    let uiMessages = JSON.parse(localStorage.getItem('jarvis_ui_messages') || '[]');
+    let permanentFacts = JSON.parse(localStorage.getItem('jarvis_permanent_facts') || '[]');
+
+    const MODELS = [
+      'gemini-3.5-flash-lite',
+      'gemini-3.8-flash'
+    ];
+
+    function updateMemoryCount() {
+      memCount.textContent = permanentFacts.length;
+    }
+
+    function savePermanentFacts() {
+      localStorage.setItem('jarvis_permanent_facts', JSON.stringify(permanentFacts));
+      updateMemoryCount();
+    }
+
+    function addPermanentFact(factText) {
+      const clean = factText.trim();
+      if (!clean) return false;
+      if (!permanentFacts.includes(clean)) {
+        permanentFacts.push(clean);
+        savePermanentFacts();
+      }
+      return true;
+    }
+
+    function renderMemoryModal() {
+      memoryList.innerHTML = '';
+      if (permanentFacts.length === 0) {
+        memoryList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">এখনো কোনো স্থায়ী তথ্য সেভ করা হয়নি।</div>';
+        return;
+      }
+      permanentFacts.forEach((fact, index) => {
+        const item = document.createElement('div');
+        item.className = 'memory-item';
+        const span = document.createElement('span');
+        span.textContent = `• ${fact}`;
+        const delBtn = document.createElement('button');
+        delBtn.className = 'memory-del';
+        delBtn.textContent = '✕';
+        delBtn.onclick = () => {
+          permanentFacts.splice(index, 1);
+          savePermanentFacts();
+          renderMemoryModal();
+        };
+        item.appendChild(span);
+        item.appendChild(delBtn);
+        memoryList.appendChild(item);
+      });
+    }
+
+    memoryBtn.addEventListener('click', () => {
+      renderMemoryModal();
+      memoryModal.classList.add('open');
+    });
+
+    closeMemModalBtn.addEventListener('click', () => {
+      memoryModal.classList.remove('open');
+    });
+
+    addFactBtn.addEventListener('click', () => {
+      const val = newFactInput.value.trim();
+      if (val) {
+        addPermanentFact(val);
+        newFactInput.value = '';
+        renderMemoryModal();
+      }
+    });
+
+    function buildSystemPrompt() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const isoLocal = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const liveTimeBn = now.toLocaleString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      const factsBlock = permanentFacts.length > 0
+        ? permanentFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')
+        : 'এখনো কোনো স্থায়ী তথ্য সেভ নেই।';
+
+      return `তুমি J.A.R.V.I.S — ব্যবহারকারীর প্রো-অ্যাক্টিভ, বিশ্বস্ত এবং প্রখর স্মৃতিশক্তিসম্পন্ন AI অ্যাসিস্ট্যান্ট।
+ব্যবহারকারীকে সবসময় "বস" (Boss) বলে সম্বোধন করবে এবং উত্তর সংক্ষিপ্ত (১-৩ বাক্যে) রাখবে।
+বর্তমান স্থানীয় সময়: ${liveTimeBn} (স্ট্যান্ডার্ড ফরম্যাট: ${isoLocal})
+
+=== বসের স্থায়ী মেমোরি ভল্ট (PERMANENT MEMORY) ===
+${factsBlock}
+=================================================
+
+অত্যন্ত গুরুত্বপূর্ণ অটোমেশন নিয়মসমূহ:
+১. তাৎক্ষণিক টেলিগ্রাম মেসেজ পাঠানো: ব্যবহারকারী যদি টেলিগ্রামে কোনো মেসেজ বা বার্তা পাঠাতে বলেন (যেমন: "টেলিগ্রামে একটা মেসেজ পাঠাও যে আজ মিটিং আছে" বা "টেলিগ্রামে হাই পাঠাও"), তবে উত্তরের শেষে এই ট্যাগ যুক্ত করবে (যদি কী মেসেজ পাঠাতে হবে তা না বলেন, তবে জানতে চাইবে):
+[[SEND_TELEGRAM: টেলিগ্রামে_পাঠানোর_মূল_বার্তা]]
+
+২. স্থায়ী মেমোরিতে সেভ: ব্যবহারকারী তার নিজের তথ্য বা কারো কন্টাক্ট মনে রাখতে বললে উত্তরের শেষে যুক্ত করবে:
+[[SAVE_FACT: সুনির্দিষ্ট তথ্য]]
+
+৩. প্রো-অ্যাক্টিভ রিমাইন্ডার: নির্দিষ্ট সময়ে কোনো কিছু মনে করিয়ে দিতে বললে বর্তমান সময় (${isoLocal}) হিসাব করে সঠিক তারিখ ও সময় (YYYY-MM-DD HH:mm) বের করে উত্তরের শেষে যুক্ত করবে:
+[[ADD_REMINDER: YYYY-MM-DD HH:mm | কাজের_বিবরণ]]
+
+৪. সিডিউল করা ইমেইল (Auto-Send Later): ভবিষ্যতের নির্দিষ্ট সময়ে ইমেইল পাঠাতে বললে:
+[[SCHEDULE_EMAIL: YYYY-MM-DD HH:mm | প্রাপকের_ইমেইল | বিষয় | মূল_বার্তা]]
+
+৫. সাধারণ নোট সেভ: শুধু গুগল শিটে নোট লিখতে বললে:
+[[SAVE_NOTE: নোটের_বিবরণ]]
+
+৬. তাৎক্ষণিক ইমেইল পাঠানো:
+[[SEND_EMAIL: প্রাপকের_ইমেইল | বিষয় | মূল_বার্তা]]`;
+    }
+
+    function saveChatMemory() {
+      localStorage.setItem('jarvis_chat_history', JSON.stringify(chatHistory.slice(-20)));
+      localStorage.setItem('jarvis_ui_messages', JSON.stringify(uiMessages.slice(-40)));
+    }
+
+    function restoreChatUI() {
+      updateMemoryCount();
+      chatBox.innerHTML = '';
+      if (uiMessages.length === 0) {
+        const welcome = 'আসসালামু আলাইকুম বস! J.A.R.V.I.S সিস্টেম অনলাইন। এখন সরাসরি টেলিগ্রাম মেসেজ, রিমাইন্ডার, ইমেইল এবং স্থায়ী মেমোরি সবকিছু সক্রিয়।';
+        renderBubble(welcome, 'ai');
+      } else {
+        uiMessages.forEach(m => renderBubble(m.text, m.sender, m.linkUrl, m.linkLabel));
+      }
+    }
+
+    function renderBubble(text, sender, linkUrl = null, linkLabel = '') {
+      const div = document.createElement('div');
+      div.className = `msg ${sender}`;
+      div.textContent = text;
+
+      if (linkUrl) {
+        const a = document.createElement('a');
+        a.href = linkUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = linkLabel || linkUrl;
+        a.style.display = 'inline-block';
+        a.style.marginTop = '8px';
+        a.style.color = '#00f3ff';
+        a.style.textDecoration = 'underline';
+        div.appendChild(document.createElement('br'));
+        div.appendChild(a);
+      }
+
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return div;
+    }
+
+    function addMessage(text, sender, linkUrl = null, linkLabel = '', persist = true) {
+      const bubble = renderBubble(text, sender, linkUrl, linkLabel);
+      if (persist) {
+        uiMessages.push({ text, sender, linkUrl, linkLabel });
+        saveChatMemory();
+      }
+      return bubble;
+    }
+
+    function appendBadge(bubbleElement, text, type = 'success') {
+      const br = document.createElement('br');
+      const badge = document.createElement('span');
+      badge.className = `action-badge ${type}`;
+      badge.textContent = text;
+      bubbleElement.appendChild(br);
+      bubbleElement.appendChild(badge);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function clearChatScreenOnly() {
+      chatBox.innerHTML = '';
+      chatHistory = [];
+      uiMessages = [];
+      localStorage.removeItem('jarvis_chat_history');
+      localStorage.removeItem('jarvis_ui_messages');
+      const reply = `বস, চ্যাট স্ক্রিন পরিষ্কার করা হয়েছে। আপনার সেভ করা ${permanentFacts.length}টি স্থায়ী তথ্য নিরাপদে আছে।`;
+      renderBubble(reply, 'ai');
+      speak(reply);
+    }
+
+    settingsBtn.addEventListener('click', () => {
+      apiKeyInput.value = GEMINI_API_KEY;
+      webhookInput.value = APPS_SCRIPT_URL;
+      settingsModal.classList.add('open');
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('open');
+    });
+
+    saveSettingsBtn.addEventListener('click', () => {
+      const key = apiKeyInput.value.trim();
+      const hook = webhookInput.value.trim();
+
+      if (key) {
+        GEMINI_API_KEY = key;
+        localStorage.setItem('jarvis_gemini_key', key);
+      }
+      APPS_SCRIPT_URL = hook;
+      localStorage.setItem('jarvis_webhook_url', hook);
+
+      settingsModal.classList.remove('open');
+      const msg = 'বস, সিস্টেম সেটিংস সফলভাবে আপডেট ও সেভ করা হয়েছে!';
+      addMessage(msg, 'ai');
+      speak(msg);
+    });
+
+    clearChatBtn.addEventListener('click', clearChatScreenOnly);
+
+    langBtn.addEventListener('click', () => {
+      if (currentLang === 'bn-BD') {
+        currentLang = 'en-US';
+        langBtn.textContent = 'Voice: English (US)';
+      } else {
+        currentLang = 'bn-BD';
+        langBtn.textContent = 'Voice: বাংলা (BD)';
+      }
+    });
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[*#_`]/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = currentLang;
+      utterance.rate = 1.08;
+
+      utterance.onstart = () => {
+        orb.classList.add('speaking');
+        statusText.textContent = 'Speaking...';
+      };
+
+      utterance.onend = () => {
+        orb.classList.remove('speaking');
+        statusText.textContent = 'System Online • Ready';
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    async function triggerAppsScript(payload, targetBubble = null) {
+      if (!APPS_SCRIPT_URL) {
+        const warn = '⚠️ Apps Script URL সেট করা নেই (Settings থেকে যুক্ত করুন)';
+        if (targetBubble) appendBadge(targetBubble, warn, 'error');
+        else addMessage(warn, 'ai');
+        return;
+      }
+
+      statusText.textContent = 'Syncing with Cloud...';
+
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        statusText.textContent = 'System Online • Ready';
+
+        if (result.status === 'success') {
+          let badgeText = '';
+          let badgeType = 'success';
+
+          if (payload.action === 'send_telegram') {
+            badgeText = `✈️ টেলিগ্রামে মেসেজ পাঠানো হয়েছে: "${payload.message}"`;
+          } else if (payload.action === 'save_note') {
+            badgeText = `✅ Google Sheet-এ সেভ হয়েছে: "${payload.note}"`;
+          } else if (payload.action === 'send_email') {
+            badgeText = `✅ ইমেইল পাঠানো হয়েছে: ${payload.to}`;
+          } else if (payload.action === 'add_reminder') {
+            badgeType = 'reminder';
+            badgeText = payload.type === 'email'
+              ? `📅 অটো-ইমেইল সিডিউল হয়েছে (${payload.time}) → ${payload.to}`
+              : `⏰ টেলিগ্রাম রিমাইন্ডার সেট হয়েছে (${payload.time}): "${payload.task}"`;
+          }
+
+          if (targetBubble) appendBadge(targetBubble, badgeText, badgeType);
+        } else {
+          const errText = `❌ এরর: ${result.message || 'অজানা ত্রুটি'}`;
+          if (targetBubble) appendBadge(targetBubble, errText, 'error');
+        }
+      } catch (err) {
+        statusText.textContent = 'Webhook Error';
+        const errText = `❌ কানেকশন এরর: ${err.message}`;
+        if (targetBubble) appendBadge(targetBubble, errText, 'error');
+      }
+    }
+
+    function executeLocalCommand(rawCmd) {
+      const cleanRaw = rawCmd.normalize('NFC');
+      const cmd = cleanRaw.toLowerCase().replace(/[।?!,]/g, '').trim();
+
+      if (cmd.includes('চ্যাট ক্লিয়ার') || cmd.includes('স্ক্রিন ক্লিয়ার') || cmd.includes('clear chat')) {
+        clearChatScreenOnly();
+        return true;
+      }
+
+      if (
+        cmd.includes('কয়টা বাজে') ||
+        cmd.includes('কটা বাজে') ||
+        cmd.includes('সময় কত') ||
+        cmd.includes('এখন সময়') ||
+        cmd.includes('what time') ||
+        cmd.includes('current time')
+      ) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+        const reply = `বস, এখন সময় ${timeStr}।`;
+        addMessage(reply, 'ai');
+        speak(reply);
+        return true;
+      }
+
+      if (cmd.includes('আজকের তারিখ') || cmd.includes('তারিখ কত') || cmd.includes('আজ কী বার') || cmd.includes('আজ কি বার') || cmd.includes('today date')) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('bn-BD', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const reply = `বস, আজ ${dateStr}।`;
+        addMessage(reply, 'ai');
+        speak(reply);
+        return true;
+      }
+
+      if (cmd.includes('ইউটিউবে সার্চ') || cmd.includes('youtube search') || cmd.includes('ইউটিউবে দেখাও') || cmd.includes('ইউটিউবে চালাও')) {
+        const query = cleanRaw
+          .replace(/ইউটিউবে সার্চ করো|ইউটিউবে সার্চ|ইউটিউবে দেখাও|ইউটিউবে চালাও|youtube search/gi, '')
+          .trim();
+        if (query) {
+          const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+          window.open(url, '_blank');
+          const reply = `বস, ইউটিউবে "${query}" সার্চ করে ওপেন করছি।`;
+          addMessage(reply, 'ai', url, `YouTube: ${query}`);
+          speak(reply);
+          return true;
+        }
+      }
+
+      if (cmd.includes('গুগলে সার্চ') || cmd.includes('google search') || cmd.startsWith('সার্চ করো ') || cmd.startsWith('search ')) {
+        const query = cleanRaw
+          .replace(/গুগলে সার্চ করো|গুগলে সার্চ|সার্চ করো|google search|search/gi, '')
+          .trim();
+        if (query) {
+          const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+          window.open(url, '_blank');
+          const reply = `বস, গুগলে "${query}" সার্চ করছি।`;
+          addMessage(reply, 'ai', url, `Google: ${query}`);
+          speak(reply);
+          return true;
+        }
+      }
+
+      const sites = [
+        { keys: ['ইউটিউব', 'youtube'], name: 'YouTube', url: 'https://www.youtube.com' },
+        { keys: ['ফেসবুক', 'facebook'], name: 'Facebook', url: 'https://www.facebook.com' },
+        { keys: ['জিমেইল', 'gmail', 'ইমেইল'], name: 'Gmail', url: 'https://mail.google.com' },
+        { keys: ['গুগল ড্রাইভ', 'google drive', 'ড্রাইভ'], name: 'Google Drive', url: 'https://drive.google.com' },
+        { keys: ['গুগল শিট', 'google sheet', 'শিট'], name: 'Google Sheets', url: 'https://sheets.google.com' },
+        { keys: ['গিটহাব', 'github'], name: 'GitHub', url: 'https://github.com' },
+        { keys: ['হোয়াটসঅ্যাপ', 'whatsapp'], name: 'WhatsApp Web', url: 'https://web.whatsapp.com' },
+        { keys: ['গুগল', 'google'], name: 'Google', url: 'https://www.google.com' }
+      ];
+
+      const openTriggers = ['ওপেন', 'খোলো', 'খুলো', 'চালু করো', 'ঢুকো', 'ঢোকো', 'যাও', 'open'];
+      if (openTriggers.some(t => cmd.includes(t))) {
+        for (const site of sites) {
+          if (site.keys.some(k => cmd.includes(k))) {
+            window.open(site.url, '_blank');
+            const reply = `বস, ${site.name} ওপেন করছি।`;
+            addMessage(reply, 'ai', site.url, `${site.name} খুলুন`);
+            speak(reply);
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    async function streamGeminiWithFallback(contentsPayload, messageElement) {
+      let lastError = 'Server busy';
+
+      for (const model of MODELS) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(GEMINI_API_KEY)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal: controller.signal,
+              body: JSON.stringify({
+                systemInstruction: {
+                  parts: [{ text: buildSystemPrompt() }]
+                },
+                contents: contentsPayload,
+                generationConfig: {
+                  maxOutputTokens: 420,
+                  temperature: 0.4
+                }
+              })
+            }
+          );
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            lastError = errData.error?.message || `Error ${response.status}`;
+            continue;
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let fullText = '';
+          let buffer = '';
+
+          orb.classList.remove('thinking');
+          statusText.textContent = 'Receiving...';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const jsonStr = line.slice(6).trim();
+                if (!jsonStr || jsonStr === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  if (chunk) {
+                    fullText += chunk;
+                    const visiblePart = fullText
+                      .replace(/\[\[(SEND_TELEGRAM|SAVE_FACT|SAVE_NOTE|SEND_EMAIL|ADD_REMINDER|SCHEDULE_EMAIL):[\s\S]*$/, '')
+                      .trim();
+                    if (visiblePart) {
+                      messageElement.textContent = visiblePart;
+                      chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+
+          if (fullText.trim()) return fullText.trim();
+
+        } catch (err) {
+          clearTimeout(timeoutId);
+          lastError = err.name === 'AbortError' ? 'Network timeout' : err.message;
+        }
+      }
+
+      throw new Error(lastError);
+    }
+
+    async function askGemini(userMessage) {
+      if (!GEMINI_API_KEY) {
+        const warn = 'বস, অনুগ্রহ করে ওপরের "⚙️ Settings" বাটনে ক্লিক করে আপনার Gemini API Key-টি আগে সেভ করুন।';
+        addMessage(warn, 'ai');
+        speak(warn);
+        settingsModal.classList.add('open');
+        return;
+      }
+
+      if (isProcessing) return;
+      isProcessing = true;
+
+      orb.classList.add('thinking');
+      statusText.textContent = 'Thinking...';
+
+      chatHistory.push({
+        role: 'user',
+        parts: [{ text: userMessage }]
+      });
+
+      const recentHistory = chatHistory.slice(-10);
+      const aiMsgBubble = renderBubble('...', 'ai');
+
+      try {
+        const rawAiReply = await streamGeminiWithFallback(recentHistory, aiMsgBubble);
+
+        const telegramMatch = rawAiReply.match(/\[\[SEND_TELEGRAM:\s*([\s\S]*?)\]\]/);
+        const factMatches = [...rawAiReply.matchAll(/\[\[SAVE_FACT:\s*([\s\S]*?)\]\]/g)];
+        const reminderMatch = rawAiReply.match(/\[\[ADD_REMINDER:\s*([\s\S]*?)\]\]/);
+        const schedEmailMatch = rawAiReply.match(/\[\[SCHEDULE_EMAIL:\s*([\s\S]*?)\]\]/);
+        const noteMatch = rawAiReply.match(/\[\[SAVE_NOTE:\s*([\s\S]*?)\]\]/);
+        const emailMatch = rawAiReply.match(/\[\[SEND_EMAIL:\s*([\s\S]*?)\]\]/);
+
+        const cleanReply = rawAiReply
+          .replace(/\[\[(SEND_TELEGRAM|SAVE_FACT|ADD_REMINDER|SCHEDULE_EMAIL|SAVE_NOTE|SEND_EMAIL):[\s\S]*?\]\]/g, '')
+          .trim();
+
+        aiMsgBubble.textContent = cleanReply;
+
+        chatHistory.push({
+          role: 'model',
+          parts: [{ text: cleanReply }]
+        });
+
+        uiMessages.push({ text: cleanReply, sender: 'ai' });
+        saveChatMemory();
+
+        statusText.textContent = 'System Online • Ready';
+        speak(cleanReply);
+
+        // ১. তাৎক্ষণিক টেলিগ্রাম মেসেজ
+        if (telegramMatch && telegramMatch[1]) {
+          await triggerAppsScript({
+            action: 'send_telegram',
+            message: telegramMatch[1].trim()
+          }, aiMsgBubble);
+        }
+
+        // ২. স্থায়ী মেমোরি ভল্টে সেভ
+        if (factMatches.length > 0) {
+          for (const match of factMatches) {
+            const fact = match[1].trim();
+            if (addPermanentFact(fact)) {
+              appendBadge(aiMsgBubble, `🧠 স্থায়ী মেমোরিতে সেভ হয়েছে: "${fact}"`, 'memory');
+            }
+          }
+        }
+
+        // ৩. প্রো-অ্যাক্টিভ রিমাইন্ডার সেট
+        if (reminderMatch && reminderMatch[1]) {
+          const parts = reminderMatch[1].split('|').map(p => p.trim());
+          if (parts.length >= 2) {
+            await triggerAppsScript({
+              action: 'add_reminder',
+              type: 'alert',
+              time: parts[0],
+              task: parts[1]
+            }, aiMsgBubble);
+          }
+        }
+
+        // ৪. সিডিউল করা ইমেইল
+        if (schedEmailMatch && schedEmailMatch[1]) {
+          const parts = schedEmailMatch[1].split('|').map(p => p.trim());
+          if (parts.length >= 4) {
+            await triggerAppsScript({
+              action: 'add_reminder',
+              type: 'email',
+              time: parts[0],
+              to: parts[1],
+              task: parts[2],
+              message: parts[3]
+            }, aiMsgBubble);
+          }
+        }
+
+        // ৫. সাধারণ নোট সেভ
+        if (noteMatch && noteMatch[1]) {
+          await triggerAppsScript({ action: 'save_note', note: noteMatch[1].trim() }, aiMsgBubble);
+        }
+
+        // ৬. তাৎক্ষণিক ইমেইল পাঠানো
+        if (emailMatch && emailMatch[1]) {
+          const parts = emailMatch[1].split('|').map(p => p.trim());
+          if (parts.length >= 3) {
+            await triggerAppsScript({
+              action: 'send_email',
+              to: parts[0],
+              subject: parts[1],
+              message: parts[2]
+            }, aiMsgBubble);
+          }
+        }
+
+      } catch (error) {
+        chatHistory.pop();
+        orb.classList.remove('thinking');
+        statusText.textContent = 'Server Busy • Try Again';
+        aiMsgBubble.textContent = `বস, একটি ত্রুটি হয়েছে: ${error.message}`;
+      } finally {
+        isProcessing = false;
+      }
+    }
+
+    function processCommand(command) {
+      if (isProcessing) return;
+      addMessage(command, 'user');
+
+      const handledLocally = executeLocalCommand(command);
+      if (handledLocally) return;
+
+      askGemini(command);
+    }
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = userInput.value.trim();
+      if (!text || isProcessing) return;
+      userInput.value = '';
+      processCommand(text);
+    });
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.interimResults = false;
+
+      function startListening() {
+        if (isProcessing) return;
+        window.speechSynthesis.cancel();
+        recognition.lang = currentLang;
+        recognition.start();
+      }
+
+      micBtn.addEventListener('click', startListening);
+      orb.addEventListener('click', startListening);
+
+      recognition.onstart = () => {
+        orb.classList.add('listening');
+        micBtn.classList.add('active');
+        statusText.textContent = 'Listening...';
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        processCommand(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        statusText.textContent = `Mic Error: ${event.error}`;
+      };
+
+      recognition.onend = () => {
+        orb.classList.remove('listening');
+        micBtn.classList.remove('active');
+        if (!orb.classList.contains('thinking') && !orb.classList.contains('speaking')) {
+          statusText.textContent = 'System Online • Ready';
+        }
+      };
+    } else {
+      micBtn.style.display = 'none';
+      statusText.textContent = 'Voice Not Supported in Browser';
+    }
+
+    restoreChatUI();
+  </script>
+</body>
+</html>
